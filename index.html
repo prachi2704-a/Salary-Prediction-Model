@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Predictor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        /* Custom styles for better form elements */
+        select, input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            font-size: 1rem;
+            line-height: 1.5rem;
+            color: #111827;
+            transition: all 0.2s ease-in-out;
+        }
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        select:focus, input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+            border-color: #4f46e5;
+        }
+
+        /* Animation for result box */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        /* Spinner for the button */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main container -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full transform transition-all hover:scale-[1.01] duration-300">
+        <!-- Header -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Salary Prediction Model</h1>
+        <p class="text-gray-500 mb-8 text-center">Enter employee details to get a salary estimate.</p>
+
+        <!-- Form for user input -->
+        <form id="salary-form" class="space-y-6">
+            
+            <div>
+                <label for="jobTitle" class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                <select id="jobTitle" name="jobTitle" required>
+                    <option>Software Engineer</option>
+                    <option>Data Scientist</option>
+                    <option>Product Manager</option>
+                    <option>UX Designer</option>
+                    <option>Data Analyst</option>
+                    <option>Project Manager</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="education" class="block text-sm font-medium text-gray-700 mb-1">Education Level</label>
+                <select id="education" name="education" required>
+                    <option>Bachelor's</option>
+                    <option>Master's</option>
+                    <option>PhD</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="experience" class="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                <input type="number" id="experience" name="experience" min="0" max="50" required placeholder="e.g., 5">
+            </div>
+
+            <div>
+                <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                <input type="number" id="age" name="age" min="18" max="80" required placeholder="e.g., 30">
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit" id="submit-button" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 flex items-center justify-center h-12">
+                    <span class="button-text">Predict Salary</span>
+                    <span class="spinner hidden ml-2"></span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Result Display Area -->
+        <div id="result" class="mt-8 p-6 bg-gray-50 rounded-lg text-center hidden">
+            <p class="text-gray-600">Predicted Annual Salary:</p>
+            <p id="prediction-text" class="text-4xl font-bold text-indigo-600"></p>
+        </div>
+    </div>
+
+    <!-- JavaScript to handle form submission -->
+    <script>
+        const form = document.getElementById('salary-form');
+        const resultDiv = document.getElementById('result');
+        const predictionText = document.getElementById('prediction-text');
+        const submitButton = document.getElementById('submit-button');
+        const buttonText = document.querySelector('#submit-button .button-text');
+        const spinner = document.querySelector('#submit-button .spinner');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent page from reloading
+            
+            // Start loading state
+            buttonText.textContent = 'Predicting...';
+            spinner.classList.remove('hidden');
+            submitButton.disabled = true;
+            resultDiv.classList.add('hidden'); // Hide previous results
+            resultDiv.classList.remove('fade-in-up');
+
+
+            // Get data from the form
+            const formData = new FormData(form);
+            const data = {
+                jobTitle: formData.get('jobTitle'),
+                education: formData.get('education'),
+                experience: formData.get('experience'),
+                age: formData.get('age')
+            };
+
+            // Send data to the '/predict' URL (to app.py)
+            try {
+                // Simulate a short delay to see the spinner
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                // Display the result on the webpage
+                if (result.predicted_salary) {
+                    const formattedSalary = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'INR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(result.predicted_salary);
+                    predictionText.textContent = formattedSalary;
+                } else {
+                    predictionText.textContent = 'Error: ' + (result.error || 'Prediction failed.');
+                }
+            } catch (error) {
+                predictionText.textContent = 'Error: Could not connect to the server.';
+            } finally {
+                // Show the result with animation
+                resultDiv.classList.remove('hidden');
+                resultDiv.classList.add('fade-in-up');
+                
+                // Reset button state
+                buttonText.textContent = 'Predict Salary';
+                spinner.classList.add('hidden');
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
+
